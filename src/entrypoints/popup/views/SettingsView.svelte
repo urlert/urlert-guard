@@ -9,7 +9,14 @@
   import { getShortcuts, type ShortcutInfo } from "$lib/shortcuts";
   import { Button } from "$lib/components/ui/button";
   import * as Kbd from "$lib/components/ui/kbd";
-  import { RotateCcw, HelpCircle, ExternalLink } from "@lucide/svelte";
+  import {
+    getDismissedDomains,
+    undismissDomain,
+  } from "$lib/dismissal";
+  import {
+    RotateCcw,
+    Trash2,
+  } from "@lucide/svelte";
 
   import SettingSection from "$lib/components/settings/SettingSection.svelte";
   import SettingToggle from "$lib/components/settings/SettingToggle.svelte";
@@ -27,10 +34,12 @@
   let settings = $state<OverlaySettings>({ ...DEFAULT_SETTINGS });
   let saved = $state(false);
   let shortcuts = $state<ShortcutInfo[]>([]);
+  let dismissedDomains = $state<Record<string, number>>({});
 
   onMount(async () => {
     settings = await getSettings();
     shortcuts = await getShortcuts();
+    dismissedDomains = await getDismissedDomains();
   });
 
   async function persist(patch: Partial<OverlaySettings>) {
@@ -65,6 +74,23 @@
     setTimeout(() => (saved = false), 1500);
   }
 
+  async function handleRemoveDismissal(domain: string) {
+    await undismissDomain(domain);
+    dismissedDomains = await getDismissedDomains();
+  }
+
+  function formatExpiration(expiresAt: number) {
+    if (expiresAt === 0) return "Forever";
+    const date = new Date(expiresAt);
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  const dismissedList = $derived(
+    Object.entries(dismissedDomains)
+      .map(([domain, expiresAt]) => ({ domain, expiresAt }))
+      .sort((a, b) => a.domain.localeCompare(b.domain))
+  );
+
   // ── Select options ──────────────────────────────────────────────────────
   const dismissOptions = [
     { value: "0", label: "Never" },
@@ -93,12 +119,12 @@
 
 <div class="space-y-4 animate-in fade-in duration-200">
   {#if !shortcutsOnly}
-    <!-- Overlay toggles -->
-    <SettingSection title="Overlay">
+    <!-- Visibility toggles -->
+    <SettingSection title="Visibility">
       <SettingToggle
         id="toggle-enabled"
-        label="Enable overlay"
-        description="Show a floating icon on classified sites"
+        label="Show security indicator"
+        description="Display the floating icon on scanned websites"
         checked={settings.overlayEnabled}
         onchange={(v) => persist({ overlayEnabled: v })}
       />
@@ -107,19 +133,19 @@
 
       <SettingToggle
         id="toggle-safe"
-        label="Show on safe sites"
-        description="By default only suspicious sites show the overlay"
+        label="Show on safe websites"
+        description="By default, the indicator is hidden on trusted sites"
         checked={settings.showForSafeSites}
         disabled={!settings.overlayEnabled}
         onchange={(v) => persist({ showForSafeSites: v })}
       />
     </SettingSection>
 
-    <!-- Behaviour selects -->
-    <SettingSection title="Behaviour">
+    <!-- Interaction selects -->
+    <SettingSection title="Interaction">
       <SettingSelect
-        label="Auto-dismiss after"
-        description="Icon hides automatically unless hovered"
+        label="Hide automatically"
+        description="Hide the indicator unless you hover over it"
         bind:value={dismissValue}
         disabled={!settings.overlayEnabled}
         options={dismissOptions}
@@ -129,8 +155,8 @@
       <div class="h-px bg-white/[0.04] -mx-3"></div>
 
       <SettingSelect
-        label="Position"
-        description="Where the icon appears on the page"
+        label="Indicator position"
+        description="Where the icon appears on your screen"
         bind:value={positionValue}
         disabled={!settings.overlayEnabled}
         options={positionOptions}
@@ -138,6 +164,33 @@
           persist({ position: v as OverlaySettings["position"] })}
       />
     </SettingSection>
+
+    <!-- Muted Websites -->
+    {#if dismissedList.length > 0}
+      <SettingSection title="Muted Websites">
+        <div class="divide-y divide-white/[0.04] -mx-1">
+          {#each dismissedList as { domain, expiresAt }}
+            <div class="flex items-center justify-between py-3 px-1 group">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-sm font-medium text-slate-200">{domain}</span>
+                <span class="text-[11px] text-slate-500">
+                  Expires: {formatExpiration(expiresAt)}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="w-8 h-8 p-0 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                onclick={() => handleRemoveDismissal(domain)}
+                title="Remove dismissal"
+              >
+                <Trash2 class="w-4 h-4" />
+              </Button>
+            </div>
+          {/each}
+        </div>
+      </SettingSection>
+    {/if}
 
     <!-- Footer actions -->
     <div class="flex items-center justify-between pt-1">

@@ -1,21 +1,27 @@
-import { mount } from 'svelte';
-import Overlay from './Overlay.svelte';
-import type { DomainClassification } from '$lib/api';
-import { getSettings, DEFAULT_SETTINGS, type OverlaySettings } from '$lib/settings';
-import { buildOverlaySafetyContext, type ThreatLevel } from '$lib/overlay-types';
+import { mount, unmount } from "svelte";
+import Overlay from "./Overlay.svelte";
+import type { DomainClassification } from "$lib/api";
+import {
+  getSettings,
+  DEFAULT_SETTINGS,
+  type OverlaySettings,
+} from "$lib/settings";
+import { buildOverlaySafetyContext } from "$lib/overlay-types";
 
 // How long to wait before retrying a domain that returned 404.
 // Backend scan typically completes in ~30 s; we give it a bit of headroom.
 const SCAN_RETRY_DELAY_MS = 35_000;
 
 export default defineContentScript({
-  matches: ['<all_urls>'],
-  cssInjectionMode: 'ui',
+  matches: ["<all_urls>"],
+  cssInjectionMode: "ui",
 
   async main(ctx) {
-    console.log('Urlert Guard content script loaded');
+    console.log("Urlert Guard content script loaded");
 
-    let ui: any;
+    let ui: ContentScriptUi<any> | null;
+    let mounting: boolean = false;
+    let overlay: any;
     let settings: OverlaySettings = { ...DEFAULT_SETTINGS };
     let scanRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -27,24 +33,40 @@ export default defineContentScript({
 
     const renderUi = async (data: DomainClassification | null) => {
       if (!data) return;
-      if (data.domain === 'urlert.com' || data.domain.endsWith('.urlert.com')) return;
+      if (data.domain === "urlert.com") return;
       if (!settings.overlayEnabled) return;
 
       const safetyCtx = buildOverlaySafetyContext(data);
-      if (safetyCtx.safetyLevel === "standard" && !settings.showForSafeSites) return;
+      if (safetyCtx.safetyLevel === "standard" && !settings.showForSafeSites)
+        return;
 
-      if (!ui) {
-        ui = await createShadowRootUi(ctx, {
-          name: 'urlert-guard-overlay',
-          position: 'inline',
-          onMount: (container) => {
-            return mount(Overlay, {
-              target: container,
-              props: { threatLevel: safetyCtx.threatLevel, settings },
-            });
-          },
-        });
-        ui.mount();
+      if (!ui && !mounting) {
+        mounting = true;
+        try {
+          ui = await createShadowRootUi(ctx, {
+            name: "urlert-guard-overlay",
+            position: "inline",
+            onMount: (container) => {
+              console.log("Overlay mounted");
+              overlay = mount(Overlay, {
+                target: container,
+                props: { threatLevel: safetyCtx.threatLevel, settings },
+              });
+              mounting = false;
+            },
+            onRemove: () => {
+              if (overlay) {
+                unmount(overlay);
+                overlay = null;
+              }
+            },
+          });
+
+          ui.mount();
+        } catch (error) {
+          console.error("Failed to mount overlay:", error);
+          mounting = false;
+        }
       }
     };
 
@@ -59,7 +81,7 @@ export default defineContentScript({
         scanRetryTimer = null;
         try {
           const refreshed = await browser.runtime.sendMessage({
-            type: 'GET_CLASSIFICATION_REFRESH',
+            type: "GET_CLASSIFICATION_REFRESH",
           });
           if (refreshed) renderUi(refreshed);
         } catch {
@@ -69,7 +91,7 @@ export default defineContentScript({
     };
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-      if (message.type === 'URLERT_CLASSIFICATION') {
+      if (message.type === "URLERT_CLASSIFICATION") {
         // Clear any pending retry — we now have the data we were waiting for.
         if (scanRetryTimer) {
           clearTimeout(scanRetryTimer);
@@ -78,17 +100,17 @@ export default defineContentScript({
         renderUi(message.payload);
       }
 
-      if (message.type === 'URLERT_SCANNING') {
+      if (message.type === "URLERT_SCANNING") {
         // Background confirmed a 404 → backend scan is in progress.
         scheduleRetry();
       }
 
-      if (message.type === 'URLERT_SETTINGS_CHANGED') {
+      if (message.type === "URLERT_SETTINGS_CHANGED") {
         settings = { ...settings, ...message.payload };
       }
 
       // On-demand scan: background asks for the page HTML.
-      if (message.type === 'URLERT_GET_PAGE_HTML') {
+      if (message.type === "URLERT_GET_PAGE_HTML") {
         sendResponse({ html: document.documentElement.outerHTML });
         return true;
       }
@@ -98,7 +120,9 @@ export default defineContentScript({
     // If null is returned the domain is either being scanned or truly unknown;
     // schedule a retry either way (worst case: one extra call for unknown domains).
     try {
-      const data = await browser.runtime.sendMessage({ type: 'GET_CLASSIFICATION' });
+      const data = await browser.runtime.sendMessage({
+        type: "GET_CLASSIFICATION",
+      });
       if (data) {
         renderUi(data);
       } else {

@@ -16,10 +16,6 @@
     safetyCtx: OverlaySafetyContext;
   } = $props();
 
-  /** Strip the "High Risk: " / "Caution: " prefix — the badge already shows it. */
-  const safetyReason = $derived(
-    safetyCtx.safetyLabel.replace(/^(High Risk|Caution): /, ""),
-  );
 </script>
 
 <div class="space-y-2.5">
@@ -36,7 +32,7 @@
         </Badge>
       </div>
       <div class="min-w-0">
-        <p class="text-sm font-bold text-red-300 leading-snug">{safetyReason}</p>
+        <p class="text-sm font-bold text-red-300 leading-snug">{safetyCtx.safetyLabel}</p>
         <p class="text-[13px] leading-relaxed pt-0.5 text-red-300/70">
           {safetyCtx.trustSummary}
         </p>
@@ -54,7 +50,7 @@
         </Badge>
       </div>
       <div class="min-w-0">
-        <p class="text-sm font-bold text-amber-300 leading-snug">{safetyReason}</p>
+        <p class="text-sm font-bold text-amber-300 leading-snug">{safetyCtx.safetyLabel}</p>
         <p class="text-[13px] leading-relaxed pt-0.5 text-amber-300/70">
           {safetyCtx.trustSummary}
         </p>

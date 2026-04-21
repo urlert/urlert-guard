@@ -12,7 +12,7 @@
 
   const URLERT_DISCUSS_URL = import.meta.env.DEV
     ? "http://localhost:5175/d"
-    : "https://disuss.urlert.com/d";
+    : "https://discuss.urlert.com/d";
 </script>
 
 <div

@@ -6,14 +6,14 @@ export interface OverlaySettings {
   /** Auto-dismiss timeout in seconds (0 = never auto-dismiss) */
   autoDismissSeconds: number;
   /** Position of the overlay */
-  position: 'top-right' | 'bottom-right' | 'top-left' | 'bottom-left';
+  position: "top-right" | "bottom-right" | "top-left" | "bottom-left";
 }
 
 export const DEFAULT_SETTINGS: OverlaySettings = {
   overlayEnabled: true,
   showForSafeSites: false,
-  autoDismissSeconds: 10,
-  position: 'bottom-right',
+  autoDismissSeconds: 20,
+  position: "bottom-right",
 };
 
 export async function getSettings(): Promise<OverlaySettings> {
@@ -27,6 +27,8 @@ export async function getSettings(): Promise<OverlaySettings> {
   }
 }
 
-export async function saveSettings(settings: Partial<OverlaySettings>): Promise<void> {
+export async function saveSettings(
+  settings: Partial<OverlaySettings>,
+): Promise<void> {
   await browser.storage.sync.set(settings);
 }

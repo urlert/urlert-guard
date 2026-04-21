@@ -80,8 +80,8 @@
 
   /* High Risk State */
   .danger {
-    width: 64px;
-    height: 64px;
+    width: 88px;
+    height: 88px;
     background: #450a0a; /* Red 950 */
     border-color: #ef4444; /* Red 500 */
     box-shadow:
@@ -95,25 +95,26 @@
     background: #7f1d1d; /* Red 900 */
     box-shadow:
       0 20px 25px -5px rgba(0, 0, 0, 0.5),
-      0 0 0 3px rgba(239, 68, 68, 0.3);
+      0 0 0 4px rgba(239, 68, 68, 0.3);
   }
 
   .danger .icon-img {
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
   }
 
   .danger .dot {
-    width: 16px;
-    height: 16px;
-    bottom: 4px;
-    right: 4px;
+    width: 20px;
+    height: 20px;
+    bottom: 6px;
+    right: 6px;
   }
 
   /* Caution State */
   .warn {
-    width: 56px;
-    height: 56px;
+    width: 68px;
+    height: 68px;
     background: #422006; /* Amber 950 */
     border-color: #f59e0b; /* Amber 500 */
     box-shadow:
@@ -128,15 +129,16 @@
   }
 
   .warn .icon-img {
-    width: 32px;
-    height: 32px;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
   }
 
   .warn .dot {
-    width: 14px;
-    height: 14px;
-    bottom: 3px;
-    right: 3px;
+    width: 16px;
+    height: 16px;
+    bottom: 4px;
+    right: 4px;
   }
 
   .safe {

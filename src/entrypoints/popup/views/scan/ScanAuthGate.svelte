@@ -13,7 +13,7 @@
   <div
     class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center"
   >
-    <Radar class="w-6 h-6 text-indigo-400" />
+    <Radar class="w-12 h-12 text-indigo-400" />
   </div>
   <div class="space-y-1.5">
     <p class="text-base font-bold text-slate-300">Sign in to scan</p>

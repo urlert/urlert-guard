@@ -1,9 +1,21 @@
-import { registerClassificationListeners, handleClassificationMessage } from './background/handlers/classification';
-import { handleAuthMessage } from './background/handlers/auth';
-import { handleScanMessage } from './background/handlers/scan';
+import {
+  registerClassificationListeners,
+  handleClassificationMessage,
+} from "./background/handlers/classification";
+import { handleAuthMessage } from "./background/handlers/auth";
+import { handleScanMessage } from "./background/handlers/scan";
 
 export default defineBackground(() => {
-  console.log('Urlert Guard background started');
+  console.log("Urlert Guard background started");
+
+  // Open onboarding page on first install.
+  browser.runtime.onInstalled.addListener((details) => {
+    if (details.reason === "install") {
+      browser.tabs.create({
+        url: browser.runtime.getURL("/onboarding.html" as any),
+      });
+    }
+  });
 
   // Register proactive tab-navigation listener.
   registerClassificationListeners();
@@ -18,9 +30,9 @@ export default defineBackground(() => {
 
   // Keyboard shortcut commands.
   browser.commands.onCommand.addListener(async (command) => {
-    if (command === 'scan-current-page') {
+    if (command === "scan-current-page") {
       // Store a launch intent so the popup opens on the Scan tab.
-      await browser.storage.local.set({ urlertLaunchIntent: 'scan' });
+      await browser.storage.local.set({ urlertLaunchIntent: "scan" });
       try {
         // openPopup() is available in Chrome 127+ / Firefox 127+.
         await (browser.action as any).openPopup();
@@ -31,4 +43,3 @@ export default defineBackground(() => {
     }
   });
 });
-

@@ -19,7 +19,7 @@
 {#if safetyCtx.risks.length > 0}
   <div class="space-y-2 pt-1">
     <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-      ⚠ Risk{safetyCtx.risks.length > 1 ? "s" : ""} Detected
+      Things to Know
     </p>
 
     <!-- Individual risk items – compact with expand -->
@@ -59,10 +59,5 @@
         </div>
       </button>
     {/each}
-
-    <!-- Actionable advice -->
-    <p class="text-xs text-slate-400 leading-normal px-0.5">
-      {safetyCtx.safetyAdvice}
-    </p>
   </div>
 {/if}

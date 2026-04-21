@@ -19,7 +19,7 @@
 
   let authState = $state<AuthState | null>(null);
   let authLoading = $state(true);
-  let activeSection = $state("general");
+  let activeSection = $state("indicator");
 
   onMount(async () => {
     try {
@@ -48,7 +48,7 @@
   }
 
   const navItems = [
-    { value: "general", label: "General", icon: Settings },
+    { value: "indicator", label: "Indicator", icon: Settings },
     { value: "account", label: "Account", icon: User },
     { value: "shortcuts", label: "Shortcuts", icon: Keyboard },
   ] as const;
@@ -123,9 +123,9 @@
 
       <!-- Main content -->
       <main class="flex-1 w-full pb-6 pl-8 min-w-0">
-        <Tabs.Content value="general">
+        <Tabs.Content value="indicator">
           <h2 class="text-lg font-semibold text-slate-200 mb-6 pt-8">
-            General
+            Security Indicator
           </h2>
           <div class="max-w-md">
             <SettingsView showShortcuts={false} />

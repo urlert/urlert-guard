@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { DomainClassification } from "$lib/api";
-  import type { OverlaySafetyContext } from "$lib/overlay-types";
   import { marked } from "marked";
   import DOMPurify from "dompurify";
   import { cn } from "$lib/utils";
@@ -17,7 +16,6 @@
     classification,
   }: {
     classification: DomainClassification;
-    safetyCtx: OverlaySafetyContext;
   } = $props();
 
   let open = $state(false);

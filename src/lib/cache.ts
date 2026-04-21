@@ -25,6 +25,8 @@ export class DomainCache<T> {
   private memCache = new Map<string, CacheEntry<T | null>>();
   private inflight = new Map<string, Promise<T | null>>();
   private readonly opts: DomainCacheOptions;
+  private lastPruneTime = 0;
+  private static readonly PRUNE_INTERVAL = 2 * 60 * 1000; // 2 minutes
 
   constructor(opts: DomainCacheOptions) {
     this.opts = opts;
@@ -35,16 +37,23 @@ export class DomainCache<T> {
 
     // 1. In-memory fast path
     const mem = this.memCache.get(key);
-    if (mem && now < mem.expiresAt) return mem.value;
+    if (mem && now < mem.expiresAt) {
+      this.pruneIfNeeded(now);
+      return mem.value;
+    }
+    // Remove expired in-memory entry eagerly
+    if (mem) this.memCache.delete(key);
 
     // 2. Persistent storage (survives SW restarts)
     const storageCache = await this.readStorage();
     const stored = storageCache[key];
     if (stored && now < stored.expiresAt) {
       this.memCache.set(key, stored);
+      this.pruneIfNeeded(now);
       return stored.value;
     }
 
+    this.pruneIfNeeded(now);
     // Cache miss
     return undefined;
   }
@@ -53,7 +62,10 @@ export class DomainCache<T> {
    * Wrap a fetch function with caching + in-flight deduplication.
    * `fetchFn` is only called on a cache miss; concurrent callers share the promise.
    */
-  async getOrFetch(key: string, fetchFn: () => Promise<T | null>): Promise<T | null> {
+  async getOrFetch(
+    key: string,
+    fetchFn: () => Promise<T | null>,
+  ): Promise<T | null> {
     const cached = await this.get(key);
     if (cached !== undefined) return cached;
 
@@ -63,7 +75,10 @@ export class DomainCache<T> {
 
     const promise = fetchFn().then((result) => {
       const ttl = result != null ? this.opts.ttlHit : this.opts.ttlMiss;
-      const entry: CacheEntry<T | null> = { value: result, expiresAt: Date.now() + ttl };
+      const entry: CacheEntry<T | null> = {
+        value: result,
+        expiresAt: Date.now() + ttl,
+      };
       this.memCache.set(key, entry);
       this.writeStorage(key, entry); // fire-and-forget
       this.inflight.delete(key);
@@ -102,25 +117,61 @@ export class DomainCache<T> {
 
   private async readStorage(): Promise<StorageCache<T | null>> {
     try {
-      const data = await browser.storage.local.get({ [this.opts.storageKey]: {} });
+      const data = await browser.storage.local.get({
+        [this.opts.storageKey]: {},
+      });
       return data[this.opts.storageKey] as StorageCache<T | null>;
     } catch {
       return {};
     }
   }
 
-  private async writeStorage(key: string, entry: CacheEntry<T | null>): Promise<void> {
+  private async writeStorage(
+    key: string,
+    entry: CacheEntry<T | null>,
+  ): Promise<void> {
     try {
       const existing = await this.readStorage();
       const now = Date.now();
       // Prune expired entries to keep storage tidy
       const pruned = Object.fromEntries(
-        Object.entries(existing).filter(([, e]) => e.expiresAt > now)
+        Object.entries(existing).filter(([, e]) => e.expiresAt > now),
       );
       pruned[key] = entry;
       await browser.storage.local.set({ [this.opts.storageKey]: pruned });
     } catch {
       // Non-fatal – in-memory cache still works
+    }
+  }
+
+  /**
+   * Periodically prune expired entries from both cache layers.
+   * Throttled to run at most once per PRUNE_INTERVAL to avoid overhead.
+   */
+  private pruneIfNeeded(now: number): void {
+    if (now - this.lastPruneTime < DomainCache.PRUNE_INTERVAL) return;
+    this.lastPruneTime = now;
+
+    // Prune in-memory cache
+    for (const [k, entry] of this.memCache) {
+      if (entry.expiresAt <= now) this.memCache.delete(k);
+    }
+
+    // Prune persistent storage (fire-and-forget)
+    this.pruneStorage(now);
+  }
+
+  private async pruneStorage(now: number): Promise<void> {
+    try {
+      const storageCache = await this.readStorage();
+      const pruned = Object.fromEntries(
+        Object.entries(storageCache).filter(([, e]) => e.expiresAt > now),
+      );
+      if (Object.keys(pruned).length < Object.keys(storageCache).length) {
+        await browser.storage.local.set({ [this.opts.storageKey]: pruned });
+      }
+    } catch {
+      // Non-fatal
     }
   }
 }

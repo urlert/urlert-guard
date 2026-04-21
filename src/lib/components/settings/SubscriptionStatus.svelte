@@ -59,13 +59,6 @@
           {/if}
         </div>
       </div>
-    {:else if subscription.is_active}
-      <!-- Minimal View: Popup Scan Tab -->
-      <p class="text-[13px] text-slate-400 px-0.5 py-1">
-        You have <strong class="text-slate-300 font-semibold"
-          >{subscription.daily_scan_limit}</strong
-        > daily scans available.
-      </p>
     {/if}
 
     {#if !subscription.is_active}

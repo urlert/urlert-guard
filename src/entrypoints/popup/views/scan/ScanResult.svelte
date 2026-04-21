@@ -14,11 +14,9 @@
 
   interface Props {
     result: ExtensionScanResult;
-    ondismiss: () => void;
-    onreport?: () => void;
   }
 
-  let { result, ondismiss, onreport }: Props = $props();
+  let { result }: Props = $props();
 
   // Clear badge as soon as user sees the result
   onMount(() => {
@@ -150,34 +148,10 @@
   {#if result.domain_registered_date}
     <div class="flex items-center gap-2 px-1 text-sm text-slate-500">
       <CalendarDays class="w-3.5 h-3.5 shrink-0" />
-      <span
-        >Domain registered: <span class="text-slate-400"
-          >{formatDate(result.domain_registered_date)}</span
-        ></span
-      >
+      <span>
+        Domain registered: <span class="text-slate-400">{formatDate(result.domain_registered_date)}</span>
+      </span>
     </div>
   {/if}
-
-  <div class="flex gap-2">
-    <Button
-      variant="ghost"
-      size="sm"
-      class="text-sm gap-2 text-slate-500 hover:text-slate-300 h-9 flex-1"
-      onclick={ondismiss}
-    >
-      <CircleCheck class="w-4 h-4" />
-      Dismiss
-    </Button>
-    {#if onreport}
-      <Button
-        variant="ghost"
-        size="sm"
-        class="text-sm gap-2 text-amber-500/70 hover:text-amber-400 hover:bg-amber-500/10 h-9 flex-1"
-        onclick={onreport}
-      >
-        <Flag class="w-4 h-4" />
-        Report URL
-      </Button>
-    {/if}
-  </div>
 </div>
+
